@@ -1,0 +1,71 @@
+/* EF Informatik -- gemeinsames Stylesheet fuer alle Selbsttest-Seiten. */
+:root {
+  --blue: #0072B2;
+  --green: #009E73;
+  --vermillion: #D55E00;
+  --orange: #E69F00;
+  --graphit: #2B2D42;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1rem 3rem;
+  color: var(--graphit);
+  line-height: 1.5;
+}
+h1 { color: var(--blue); margin-bottom: 0.25rem; }
+.subtitle { color: #666; margin-top: 0; }
+.instructions {
+  background: #f4f6f8;
+  border-left: 4px solid var(--blue);
+  padding: 0.9rem 1.1rem;
+  border-radius: 4px;
+  margin: 1.25rem 0;
+}
+.instructions code { background: #e6ebf0; padding: 0.1rem 0.35rem; border-radius: 3px; }
+textarea {
+  width: 100%;
+  height: 260px;
+  font-family: "SFMono-Regular", Consolas, "Fira Code", monospace;
+  font-size: 0.92rem;
+  padding: 0.8rem;
+  border: 2px solid #cfd6dd;
+  border-radius: 6px;
+  resize: vertical;
+}
+textarea:focus { outline: none; border-color: var(--blue); }
+button {
+  background: var(--blue);
+  color: white;
+  border: none;
+  padding: 0.7rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.9rem;
+}
+button:hover:not(:disabled) { background: #005a8c; }
+button:disabled { background: #a3aeb8; cursor: wait; }
+#status { margin-top: 0.75rem; font-style: italic; color: #666; min-height: 1.2rem; }
+table { width: 100%; border-collapse: collapse; margin-top: 1.25rem; font-size: 0.95rem; }
+th, td { text-align: left; padding: 0.55rem 0.75rem; border-bottom: 1px solid #e0e0e0; }
+th { color: var(--graphit); border-bottom: 2px solid var(--graphit); }
+td.status-pass { color: var(--green); font-weight: 700; }
+td.status-fail { color: var(--vermillion); font-weight: 700; }
+#summary { margin-top: 1.1rem; font-size: 1.15rem; font-weight: 700; }
+#summary.all-pass { color: var(--green); }
+#summary.some-fail { color: var(--vermillion); }
+pre.error-box {
+  background: #fdf0ea;
+  border-left: 4px solid var(--vermillion);
+  padding: 0.8rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.85rem;
+}
+footer { margin-top: 2.5rem; font-size: 0.8rem; color: #999; }

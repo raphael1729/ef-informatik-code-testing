@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selbsttest -- 1.1 Aufgabe 2: Binäre Suche</title>
+<link rel="stylesheet" href="../../selbsttest-style.css">
+<script src="../../pyodide/pyodide.js"></script>
+</head>
+<body>
+
+<h1>Selbsttest -- 1.1 Suchalgorithmen</h1>
+<p class="subtitle">Aufgabe 2: Binäre Suche (Crewliste)</p>
+
+<div class="instructions">
+  Fügen Sie unten <strong>nur Ihre Funktion</strong>
+  <code>binaere_suche_index(katalog, gesucht)</code> ein (kein eigener Testaufruf
+  nötig). Läuft komplett im Browser -- Ihr Code wird nirgends hochgeladen oder
+  gespeichert. Beim ersten Klick auf „Code testen" muss einmalig die Python-Umgebung
+  geladen werden (paar Sekunden, benötigt Internet); danach ist es schnell.
+</div>
+
+<textarea id="code" spellcheck="false" placeholder="def binaere_suche_index(katalog, gesucht):
+    links, rechts = 0, len(katalog) - 1
+    ..."></textarea>
+<br>
+<button id="runBtn">Code testen</button>
+<div id="status"></div>
+<div id="results"></div>
+
+<footer>EF Informatik &middot; Kapitel 1.1 &middot; nur fürs Selbststudium, kein Teil der Bewertung.</footer>
+
+<script src="../../selbsttest-engine.js"></script>
+<script>
+const crewlisteSortiert = ["Brook", "Chopper", "Franky", "Jinbe", "Luffy",
+                            "Nami", "Robin", "Sanji", "Usopp", "Zoro"];
+
+SelbsttestEngine.init({
+  funktionsname: "binaere_suche_index",
+  pyodideIndexURL: "../../pyodide/",
+  testCases: [
+    { label: "Normalfall (Mitte)",            args: [crewlisteSortiert, "Sanji"],       expected: 7 },
+    { label: "Randfall: erstes Element",      args: [crewlisteSortiert, "Brook"],       expected: 0 },
+    { label: "Randfall: letztes Element",     args: [crewlisteSortiert, "Zoro"],        expected: 9 },
+    { label: "Nicht vorhanden",               args: [crewlisteSortiert, "Wunderlampe"], expected: -1 },
+    { label: "Leere Liste",                   args: [[], "Luffy"],                       expected: -1 },
+    { label: "Einelementige Liste (Treffer)", args: [["Luffy"], "Luffy"],                expected: 0 },
+  ],
+});
+</script>
+
+</body>
+</html>

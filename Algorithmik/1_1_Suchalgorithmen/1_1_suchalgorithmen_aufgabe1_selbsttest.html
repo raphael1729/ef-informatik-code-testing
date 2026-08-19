@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selbsttest -- 1.1 Aufgabe 1: Lineare Suche mit Zähler</title>
+<link rel="stylesheet" href="../../selbsttest-style.css">
+<script src="../../pyodide/pyodide.js"></script>
+</head>
+<body>
+
+<h1>Selbsttest -- 1.1 Suchalgorithmen</h1>
+<p class="subtitle">Aufgabe 1: Lineare Suche mit Zähler (Crewliste)</p>
+
+<div class="instructions">
+  Fügen Sie unten <strong>nur Ihre Funktion</strong>
+  <code>lineare_suche_mit_zaehler(katalog, gesuchter_name)</code> ein. Sie muss ein
+  <strong>Tupel</strong> <code>(name, anzahl_vergleiche)</code> zurückgeben -- bei
+  erfolgloser Suche <code>(None, anzahl_vergleiche)</code>. Läuft komplett im
+  Browser -- Ihr Code wird nirgends hochgeladen oder gespeichert.
+</div>
+
+<textarea id="code" spellcheck="false" placeholder="def lineare_suche_mit_zaehler(katalog, gesuchter_name):
+    ..."></textarea>
+<br>
+<button id="runBtn">Code testen</button>
+<div id="status"></div>
+<div id="results"></div>
+
+<footer>EF Informatik &middot; Kapitel 1.1 &middot; nur fürs Selbststudium, kein Teil der Bewertung.</footer>
+
+<script src="../../selbsttest-engine.js"></script>
+<script>
+const crewliste = ["Luffy", "Zoro", "Nami", "Usopp", "Sanji",
+                    "Chopper", "Robin", "Franky", "Brook", "Jinbe"];
+
+SelbsttestEngine.init({
+  funktionsname: "lineare_suche_mit_zaehler",
+  pyodideIndexURL: "../../pyodide/",
+  testCases: [
+    { label: "Erstes Element (1 Vergleich)",      args: [crewliste, "Luffy"],       expected: ["Luffy", 1] },
+    { label: "Mitte (5 Vergleiche)",               args: [crewliste, "Sanji"],       expected: ["Sanji", 5] },
+    { label: "Letztes Element (10 Vergleiche)",    args: [crewliste, "Jinbe"],       expected: ["Jinbe", 10] },
+    { label: "Nicht vorhanden (10 Vergleiche)",    args: [crewliste, "Wunderlampe"], expected: [null, 10] },
+  ],
+});
+</script>
+
+</body>
+</html>
