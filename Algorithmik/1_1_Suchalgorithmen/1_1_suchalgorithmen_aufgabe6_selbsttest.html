@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selbsttest -- 1.1 Aufgabe 6: Interpolationssuche</title>
+<link rel="stylesheet" href="../../selbsttest-style.css">
+<script src="../../pyodide/pyodide.js"></script>
+</head>
+<body>
+
+<h1>Selbsttest -- 1.1 Suchalgorithmen</h1>
+<p class="subtitle">Aufgabe 6: Interpolationssuche (Zusatz, nicht prüfungsrelevant)</p>
+
+<div class="instructions">
+  Fügen Sie unten Ihre Funktion <code>interpolationssuche(werte, gesucht)</code> ein.
+  Sie soll den <strong>Index</strong> von <code>gesucht</code> in der sortierten Liste
+  <code>werte</code> zurückgeben, oder <code>-1</code>, falls der Wert nicht vorkommt --
+  gleicher Rückgabe-Vertrag wie <code>binaere_suche_index</code> aus Aufgabe 2.
+</div>
+
+<textarea id="code" spellcheck="false" placeholder="def interpolationssuche(werte, gesucht):
+    links, rechts = 0, len(werte) - 1
+    ..."></textarea>
+<br>
+<button id="runBtn">Code testen</button>
+<div id="status"></div>
+<div id="results"></div>
+
+<footer>EF Informatik &middot; Kapitel 1.1 &middot; nur fürs Selbststudium, kein Teil der Bewertung.</footer>
+
+<script src="../../selbsttest-engine.js"></script>
+<script>
+const gleichmaessig = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90];
+const ungleichmaessig = [1, 2, 3, 4, 5, 1000]; // Beispiel aus dem Food-for-Thought im Skript
+
+SelbsttestEngine.init({
+  funktionsname: "interpolationssuche",
+  pyodideIndexURL: "../../pyodide/",
+  testCases: [
+    { label: "Gleichverteilt: Normalfall",       args: [gleichmaessig, 70],          expected: 7 },
+    { label: "Gleichverteilt: erstes Element",   args: [gleichmaessig, 0],           expected: 0 },
+    { label: "Gleichverteilt: letztes Element",  args: [gleichmaessig, 90],          expected: 9 },
+    { label: "Gleichverteilt: nicht vorhanden",  args: [gleichmaessig, 55],          expected: -1 },
+    { label: "Ungleichverteilt: Extremwert",     args: [ungleichmaessig, 1000],      expected: 5 },
+    { label: "Ungleichverteilt: Normalfall",     args: [ungleichmaessig, 3],         expected: 2 },
+    { label: "Einelementige Liste (Treffer)",    args: [[42], 42],                    expected: 0 },
+    { label: "Einelementige Liste (kein Treffer, Division-durch-0-Falle)", args: [[42], 7], expected: -1 },
+    { label: "Leere Liste",                      args: [[], 5],                       expected: -1 },
+  ],
+});
+</script>
+
+</body>
+</html>

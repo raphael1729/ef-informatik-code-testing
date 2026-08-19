@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selbsttest -- 1.1 Aufgabe 5: Kopfgeld-Liste</title>
+<link rel="stylesheet" href="../../selbsttest-style.css">
+<script src="../../pyodide/pyodide.js"></script>
+</head>
+<body>
+
+<h1>Selbsttest -- 1.1 Suchalgorithmen</h1>
+<p class="subtitle">Aufgabe 5: Von der Namensliste zur Kopfgeld-Liste</p>
+
+<div class="instructions">
+  Fügen Sie unten Ihre angepasste Funktion <code>binaere_suche_index(katalog, gesucht)</code>
+  ein: <code>katalog</code> ist jetzt eine Liste von Tupeln <code>(name, kopfgeld)</code>,
+  <code>gesucht</code> weiterhin nur der gesuchte Name. Verglichen wird auf den Namen,
+  zurückgegeben bei einem Treffer das <strong>gesamte Tupel</strong> (Name und Kopfgeld),
+  bei Nichttreffer <code>-1</code> -- gleicher Vertrag wie in Aufgabe 2.
+</div>
+
+<textarea id="code" spellcheck="false" placeholder="def binaere_suche_index(katalog, gesucht):
+    links, rechts = 0, len(katalog) - 1
+    ..."></textarea>
+<br>
+<button id="runBtn">Code testen</button>
+<div id="status"></div>
+<div id="results"></div>
+
+<footer>EF Informatik &middot; Kapitel 1.1 &middot; nur fürs Selbststudium, kein Teil der Bewertung.</footer>
+
+<script src="../../selbsttest-engine.js"></script>
+<script>
+const kopfgeldlisteTupel = [
+  ["Brook", 383000000], ["Chopper", 1000], ["Franky", 394000000],
+  ["Jinbe", 1100000000], ["Luffy", 3000000000], ["Nami", 366000000],
+  ["Robin", 930000000], ["Sanji", 1032000000], ["Usopp", 500000000],
+  ["Zoro", 1111000000],
+];
+
+SelbsttestEngine.init({
+  funktionsname: "binaere_suche_index",
+  pyodideIndexURL: "../../pyodide/",
+  testCases: [
+    { label: "Normalfall (Mitte)",            args: [kopfgeldlisteTupel, "Luffy"],       expected: ["Luffy", 3000000000] },
+    { label: "Randfall: erstes Element",      args: [kopfgeldlisteTupel, "Brook"],       expected: ["Brook", 383000000] },
+    { label: "Randfall: letztes Element",     args: [kopfgeldlisteTupel, "Zoro"],        expected: ["Zoro", 1111000000] },
+    { label: "Kleines Kopfgeld (Randwert)",   args: [kopfgeldlisteTupel, "Chopper"],     expected: ["Chopper", 1000] },
+    { label: "Nicht vorhanden",               args: [kopfgeldlisteTupel, "Wunderlampe"], expected: -1 },
+  ],
+});
+</script>
+
+</body>
+</html>

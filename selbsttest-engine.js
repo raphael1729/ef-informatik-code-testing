@@ -153,7 +153,10 @@
           actualDisplay = formatWert(actual);
         } catch (e) {
           ok = false;
-          actualDisplay = "Fehler: " + (e.message || e).toString().split("\n").pop();
+          // .filter(Boolean): Python-Tracebacks enden meist mit einem
+          // Zeilenumbruch, sonst liefert .pop() faelschlich einen leeren String.
+          const zeilen = (e.message || e).toString().split("\n").filter(Boolean);
+          actualDisplay = "Fehler: " + (zeilen.pop() || "unbekannter Fehler");
         }
         if (ok) passed++;
         rows += `<tr>
