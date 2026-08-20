@@ -14,13 +14,17 @@
 
 <div class="instructions">
   Fügen Sie unten Ihre Funktion <code>interpolationssuche(werte, gesucht)</code> ein.
-  Sie soll den <strong>Index</strong> von <code>gesucht</code> in der sortierten Liste
-  <code>werte</code> zurückgeben, oder <code>-1</code>, falls der Wert nicht vorkommt --
-  gleicher Rückgabe-Vertrag wie <code>binaere_suche_index</code> aus Aufgabe 2.
+  Sie soll ein <strong>Tupel</strong> <code>(index, anzahl_vergleiche)</code> zurückgeben:
+  <code>index</code> ist die Position von <code>gesucht</code> in der sortierten Liste
+  <code>werte</code>, oder <code>-1</code>, falls der Wert nicht vorkommt.
+  <code>anzahl_vergleiche</code> zählt, wie oft Sie eine geschätzte Position mit
+  <code>gesucht</code> verglichen haben (ein Vergleich pro Schleifendurchlauf) --
+  diese Zahl brauchen Sie ohnehin für die Beobachtung weiter unten.
 </div>
 
 <textarea id="code" spellcheck="false" placeholder="def interpolationssuche(werte, gesucht):
     links, rechts = 0, len(werte) - 1
+    vergleiche = 0
     ..."></textarea>
 <br>
 <button id="runBtn">Code testen</button>
@@ -38,15 +42,15 @@ SelbsttestEngine.init({
   funktionsname: "interpolationssuche",
   pyodideIndexURL: "../../pyodide/",
   testCases: [
-    { label: "Gleichverteilt: Normalfall",       args: [gleichmaessig, 70],          expected: 7 },
-    { label: "Gleichverteilt: erstes Element",   args: [gleichmaessig, 0],           expected: 0 },
-    { label: "Gleichverteilt: letztes Element",  args: [gleichmaessig, 90],          expected: 9 },
-    { label: "Gleichverteilt: nicht vorhanden",  args: [gleichmaessig, 55],          expected: -1 },
-    { label: "Ungleichverteilt: Extremwert",     args: [ungleichmaessig, 1000],      expected: 5 },
-    { label: "Ungleichverteilt: Normalfall",     args: [ungleichmaessig, 3],         expected: 2 },
-    { label: "Einelementige Liste (Treffer)",    args: [[42], 42],                    expected: 0 },
-    { label: "Einelementige Liste (kein Treffer, Division-durch-0-Falle)", args: [[42], 7], expected: -1 },
-    { label: "Leere Liste",                      args: [[], 5],                       expected: -1 },
+    { label: "Gleichverteilt: Normalfall",       args: [gleichmaessig, 70],          expected: [7, 1] },
+    { label: "Gleichverteilt: erstes Element",   args: [gleichmaessig, 0],           expected: [0, 1] },
+    { label: "Gleichverteilt: letztes Element",  args: [gleichmaessig, 90],          expected: [9, 1] },
+    { label: "Gleichverteilt: nicht vorhanden",  args: [gleichmaessig, 55],          expected: [-1, 1] },
+    { label: "Ungleichverteilt: Extremwert",     args: [ungleichmaessig, 1000],      expected: [5, 1] },
+    { label: "Ungleichverteilt: Normalfall",     args: [ungleichmaessig, 3],         expected: [2, 3] },
+    { label: "Einelementige Liste (Treffer)",    args: [[42], 42],                    expected: [0, 1] },
+    { label: "Einelementige Liste (kein Treffer, Division-durch-0-Falle)", args: [[42], 7], expected: [-1, 0] },
+    { label: "Leere Liste",                      args: [[], 5],                       expected: [-1, 0] },
   ],
 });
 </script>
