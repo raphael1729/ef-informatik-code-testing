@@ -4,6 +4,7 @@
   --green: #009E73;
   --vermillion: #D55E00;
   --orange: #E69F00;
+  --akzent: #CC79A7;
   --graphit: #2B2D42;
 }
 * { box-sizing: border-box; }
@@ -69,3 +70,35 @@ pre.error-box {
   font-size: 0.85rem;
 }
 footer { margin-top: 2.5rem; font-size: 0.8rem; color: #999; }
+
+/* Uebersichtsseite (index.html) */
+.kapitel-block { margin-top: 2rem; }
+.kapitel-block h2 {
+  color: var(--graphit);
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 0.4rem;
+  font-size: 1.2rem;
+}
+.aufgaben-liste { list-style: none; padding: 0; margin: 0.75rem 0 0; }
+.aufgaben-liste li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid #eee;
+}
+.aufgaben-liste a { color: var(--blue); text-decoration: none; font-weight: 600; }
+.aufgaben-liste a:hover { text-decoration: underline; }
+.tag {
+  display: inline-block;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tag-grundlagen { background: var(--blue); }
+.tag-vertiefung { background: var(--green); }
+.tag-zusatz { background: var(--akzent); }
