@@ -1,0 +1,785 @@
+<title>Parson's Puzzle — Binäre Suche</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F7FA;
+    --surface: #FFFFFF;
+    --surface-gutter: #EEF1F6;
+    --border: #D7DCE5;
+    --border-strong: #C3CADA;
+    --ink: #23262B;
+    --ink-muted: #6B7180;
+    --ink-faint: #9AA0AC;
+    --accent: #0072B2;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E4F0F9;
+    --success: #009E73;
+    --success-soft: #E1F5EE;
+    --error: #D55E00;
+    --error-soft: #FBEAE0;
+    --distractor: #CC79A7;
+    --distractor-soft: #F8E9F1;
+    --shadow: 0 8px 24px -12px rgba(35, 38, 43, 0.25);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171C;
+      --surface: #1B1F26;
+      --surface-gutter: #12151A;
+      --border: #2C313B;
+      --border-strong: #3A4150;
+      --ink: #E7E9EE;
+      --ink-muted: #9BA2B0;
+      --ink-faint: #6C7484;
+      --accent: #5FB4E8;
+      --accent-ink: #0B1520;
+      --accent-soft: #1E2C38;
+      --success: #3FCFA4;
+      --success-soft: #163229;
+      --error: #FF8F52;
+      --error-soft: #33201A;
+      --distractor: #E2A0C6;
+      --distractor-soft: #2E1F29;
+      --shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14171C;
+    --surface: #1B1F26;
+    --surface-gutter: #12151A;
+    --border: #2C313B;
+    --border-strong: #3A4150;
+    --ink: #E7E9EE;
+    --ink-muted: #9BA2B0;
+    --ink-faint: #6C7484;
+    --accent: #5FB4E8;
+    --accent-ink: #0B1520;
+    --accent-soft: #1E2C38;
+    --success: #3FCFA4;
+    --success-soft: #163229;
+    --error: #FF8F52;
+    --error-soft: #33201A;
+    --distractor: #E2A0C6;
+    --distractor-soft: #2E1F29;
+    --shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.55);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(1rem, 3vw, 2.5rem);
+  }
+
+  .page {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  /* ---------- Header ---------- */
+  header.top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .title-block h1 {
+    margin: 0 0 0.3rem 0;
+    font-size: clamp(1.35rem, 2.4vw, 1.7rem);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+
+  .title-block p {
+    margin: 0;
+    color: var(--ink-muted);
+    font-size: 0.95rem;
+    max-width: 62ch;
+  }
+
+  .badge-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+  .badge {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    padding: 0.3rem 0.6rem;
+    border-radius: 5px;
+    background: var(--surface-gutter);
+    border: 1px solid var(--border);
+    color: var(--ink-muted);
+    white-space: nowrap;
+  }
+
+  /* ---------- Editor panes ---------- */
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 720px) {
+    .panes { grid-template-columns: 1fr; }
+  }
+
+  .pane {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+    min-height: 360px;
+  }
+
+  .pane-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.85rem;
+    background: var(--surface-gutter);
+    border-bottom: 1px solid var(--border);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+  }
+
+  .pane-tab .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--ink-faint);
+    flex-shrink: 0;
+  }
+
+  .pane[data-role="pool"] .pane-tab .dot { background: var(--ink-faint); }
+  .pane[data-role="solution"] .pane-tab .dot { background: var(--accent); }
+
+  .pane-body {
+    flex: 1;
+    padding: 0.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    min-height: 0;
+    transition: background-color 0.15s ease;
+  }
+
+  .pane-body.drag-over { background: var(--accent-soft); }
+
+  .empty-hint {
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    border: 1px dashed var(--border-strong);
+    border-radius: 6px;
+    margin: auto 0;
+  }
+
+  /* ---------- Cards ---------- */
+  .line-card {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: grab;
+    user-select: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .line-card:active { cursor: grabbing; }
+  .line-card.dragging { opacity: 0.4; }
+
+  .line-card.state-ok { border-color: var(--success); background: var(--success-soft); }
+  .line-card.state-error { border-color: var(--error); background: var(--error-soft); }
+  .line-card.state-distractor-flag { border-color: var(--distractor); background: var(--distractor-soft); }
+
+  .gutter {
+    flex-shrink: 0;
+    width: 2.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--ink-faint);
+    background: var(--surface-gutter);
+    border-right: 1px solid var(--border);
+    border-radius: 5px 0 0 5px;
+  }
+
+  .code-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0.55rem 0.6rem;
+    overflow-x: auto;
+  }
+
+  .indent-guides {
+    display: flex;
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  .indent-guides .guide {
+    width: 1.1rem;
+    border-right: 1px solid var(--border);
+    margin-right: 0.55rem;
+  }
+
+  .code-text {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.86rem;
+    white-space: pre;
+    color: var(--ink);
+  }
+
+  .card-actions {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--border);
+  }
+
+  .card-actions button {
+    all: unset;
+    cursor: pointer;
+    font-size: 0.7rem;
+    line-height: 1;
+    padding: 0.35rem 0.5rem;
+    color: var(--ink-muted);
+    text-align: center;
+  }
+
+  .card-actions button:hover { color: var(--accent); background: var(--accent-soft); }
+  .card-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .pool-move-btn {
+    all: unset;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 0.7rem;
+    border-left: 1px solid var(--border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .pool-move-btn:hover { background: var(--accent-soft); }
+  .pool-move-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  /* ---------- Action bar ---------- */
+  .action-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+  }
+
+  .btn {
+    all: unset;
+    cursor: pointer;
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.6rem 1.1rem;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-primary:hover { filter: brightness(1.06); }
+
+  .btn-ghost { background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink); }
+  .btn-ghost:hover { background: var(--surface-gutter); }
+
+  .btn-text { color: var(--ink-muted); text-decoration: underline; text-underline-offset: 3px; padding: 0.6rem 0.3rem; }
+  .btn-text:hover { color: var(--ink); }
+
+  /* ---------- Console / feedback ---------- */
+  .console {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.86rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface-gutter);
+    overflow: hidden;
+  }
+
+  .console-head {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.72rem;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .console-body {
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    min-height: 1.4rem;
+  }
+
+  .console-body .prompt { color: var(--accent); flex-shrink: 0; }
+  .console-body .msg { color: var(--ink-muted); }
+  .console-body.tone-success .msg { color: var(--success); }
+  .console-body.tone-error .msg { color: var(--error); }
+
+  /* ---------- Hint & reveal ---------- */
+  .hint-panel, .reveal-panel {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+
+  .hint-panel { display: none; color: var(--ink-muted); }
+  .hint-panel.open { display: block; }
+
+  .reveal-panel { display: none; }
+  .reveal-panel.open { display: block; }
+  .reveal-panel h2 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: var(--success);
+  }
+  .reveal-panel pre {
+    margin: 0.6rem 0 0.6rem 0;
+    padding: 0.75rem 0.9rem;
+    background: var(--surface-gutter);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.83rem;
+    line-height: 1.5;
+  }
+  .reveal-panel p { margin: 0.4rem 0 0 0; color: var(--ink-muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="top">
+    <div class="title-block">
+      <h1>Parson's Puzzle — Binäre Suche</h1>
+      <p>Bringen Sie die Codezeilen rechts in die richtige Reihenfolge. Eine Zeile gehört nicht zum Algorithmus.</p>
+    </div>
+    <div class="badge-row">
+      <span class="badge" id="attemptBadge">0 Prüfungen</span>
+      <span class="badge" id="statusBadge">ungelöst</span>
+    </div>
+  </header>
+
+  <div class="panes">
+    <section class="pane" data-role="pool">
+      <div class="pane-tab"><span class="dot"></span>zeilen_pool.py — ungeordnet</div>
+      <div class="pane-body" id="poolBody"></div>
+    </section>
+
+    <section class="pane" data-role="solution">
+      <div class="pane-tab"><span class="dot"></span>deine_loesung.py</div>
+      <div class="pane-body" id="solutionBody"></div>
+    </section>
+  </div>
+
+  <div class="action-bar">
+    <button class="btn btn-primary" id="checkBtn">Prüfen</button>
+    <button class="btn btn-ghost" id="hintBtn">Tipp anzeigen</button>
+    <button class="btn btn-ghost" id="shuffleBtn">Neu mischen</button>
+  </div>
+
+  <div class="console">
+    <div class="console-head">Rückmeldung</div>
+    <div class="console-body" id="consoleBody" aria-live="polite">
+      <span class="prompt">&gt;</span>
+      <span class="msg" id="consoleMsg">Noch keine Prüfung durchgeführt. Ordnen Sie zuerst alle Zeilen zu.</span>
+    </div>
+  </div>
+
+  <div class="hint-panel" id="hintPanel">
+    Struktur der binären Suche: Grenzen setzen → solange Grenzen sich nicht überkreuzen: Mitte berechnen → Treffer? →
+    sonst Intervall anhand des Vergleichs halbieren → nach der Schleife: kein Treffer gefunden.
+  </div>
+
+  <div class="reveal-panel" id="revealPanel">
+    <h2>Vollständig korrekt</h2>
+    <pre id="revealCode"></pre>
+    <p>Die Ablenker-Zeile <code>rechts = mitte + 1</code> hätte das Suchintervall in die falsche Richtung verschoben,
+      statt es beim Ausschluss der linken Hälfte korrekt zu verkleinern.</p>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var LINES = [
+    { id: 1, code: "def binaere_suche(liste, ziel):", indent: 0, pos: 0 },
+    { id: 2, code: "links, rechts = 0, len(liste) - 1", indent: 1, pos: 1 },
+    { id: 3, code: "while links <= rechts:", indent: 1, pos: 2 },
+    { id: 4, code: "mitte = (links + rechts) // 2", indent: 2, pos: 3 },
+    { id: 5, code: "if liste[mitte] == ziel:", indent: 2, pos: 4 },
+    { id: 6, code: "return mitte", indent: 3, pos: 5 },
+    { id: 7, code: "elif liste[mitte] < ziel:", indent: 2, pos: 6 },
+    { id: 8, code: "links = mitte + 1", indent: 3, pos: 7 },
+    { id: 9, code: "else:", indent: 2, pos: 8 },
+    { id: 10, code: "rechts = mitte - 1", indent: 3, pos: 9 },
+    { id: 11, code: "return -1", indent: 1, pos: 10 },
+    { id: 99, code: "rechts = mitte + 1", indent: 2, pos: null }
+  ];
+
+  var byId = {};
+  LINES.forEach(function (l) { byId[l.id] = l; });
+
+  var CORRECT_ORDER = LINES.filter(function (l) { return l.pos !== null; })
+    .sort(function (a, b) { return a.pos - b.pos; })
+    .map(function (l) { return l.id; });
+
+  var pool = [];
+  var solution = [];
+  var attempts = 0;
+  var dragged = null; // { id, from }
+
+  var poolBody = document.getElementById("poolBody");
+  var solutionBody = document.getElementById("solutionBody");
+  var attemptBadge = document.getElementById("attemptBadge");
+  var statusBadge = document.getElementById("statusBadge");
+  var consoleBody = document.getElementById("consoleBody");
+  var consoleMsg = document.getElementById("consoleMsg");
+  var hintPanel = document.getElementById("hintPanel");
+  var revealPanel = document.getElementById("revealPanel");
+  var revealCode = document.getElementById("revealCode");
+
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function resetPuzzle() {
+    pool = shuffle(LINES.map(function (l) { return l.id; }));
+    solution = [];
+    attempts = 0;
+    clearCardStates();
+    setConsole("Noch keine Prüfung durchgeführt. Ordnen Sie zuerst alle Zeilen zu.", "");
+    statusBadge.textContent = "ungelöst";
+    attemptBadge.textContent = "0 Prüfungen";
+    revealPanel.classList.remove("open");
+    render();
+  }
+
+  function clearCardStates() {
+    // state classes are re-derived on render; nothing persistent to clear here
+  }
+
+  function makeIndentGuides(indent) {
+    var wrap = document.createElement("span");
+    wrap.className = "indent-guides";
+    for (var i = 0; i < indent; i++) {
+      var g = document.createElement("span");
+      g.className = "guide";
+      wrap.appendChild(g);
+    }
+    return wrap;
+  }
+
+  function buildCard(id, opts) {
+    var line = byId[id];
+    var card = document.createElement("div");
+    card.className = "line-card";
+    card.setAttribute("draggable", "true");
+    card.dataset.id = String(id);
+
+    if (opts.stateClass) card.classList.add(opts.stateClass);
+
+    var gutter = document.createElement("div");
+    gutter.className = "gutter";
+    gutter.textContent = opts.gutterLabel || "";
+    card.appendChild(gutter);
+
+    var codeWrap = document.createElement("div");
+    codeWrap.className = "code-wrap";
+    codeWrap.appendChild(makeIndentGuides(line.indent));
+    var codeText = document.createElement("span");
+    codeText.className = "code-text";
+    codeText.textContent = line.code;
+    codeWrap.appendChild(codeText);
+    card.appendChild(codeWrap);
+
+    if (opts.role === "pool") {
+      var moveBtn = document.createElement("button");
+      moveBtn.className = "pool-move-btn";
+      moveBtn.type = "button";
+      moveBtn.textContent = "→ Übernehmen";
+      moveBtn.setAttribute("aria-label", "Zeile in die Lösung übernehmen");
+      moveBtn.addEventListener("click", function () {
+        moveToSolution(id, solution.length);
+      });
+      card.appendChild(moveBtn);
+    } else {
+      var actions = document.createElement("div");
+      actions.className = "card-actions";
+
+      var up = document.createElement("button");
+      up.type = "button";
+      up.textContent = "▲";
+      up.setAttribute("aria-label", "Zeile nach oben verschieben");
+      up.addEventListener("click", function () { moveWithinSolution(id, -1); });
+
+      var down = document.createElement("button");
+      down.type = "button";
+      down.textContent = "▼";
+      down.setAttribute("aria-label", "Zeile nach unten verschieben");
+      down.addEventListener("click", function () { moveWithinSolution(id, 1); });
+
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "✕";
+      remove.setAttribute("aria-label", "Zeile zurück in den Pool legen");
+      remove.addEventListener("click", function () { moveToPool(id); });
+
+      actions.appendChild(up);
+      actions.appendChild(down);
+      actions.appendChild(remove);
+      card.appendChild(actions);
+    }
+
+    card.addEventListener("dragstart", function (e) {
+      dragged = { id: id, from: opts.role };
+      card.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(id));
+    });
+    card.addEventListener("dragend", function () {
+      card.classList.remove("dragging");
+      dragged = null;
+    });
+
+    return card;
+  }
+
+  function render() {
+    // pool
+    poolBody.innerHTML = "";
+    if (pool.length === 0) {
+      var emptyPool = document.createElement("div");
+      emptyPool.className = "empty-hint";
+      emptyPool.textContent = "Alle Zeilen verteilt.";
+      poolBody.appendChild(emptyPool);
+    } else {
+      pool.forEach(function (id) {
+        poolBody.appendChild(buildCard(id, { role: "pool" }));
+      });
+    }
+
+    // solution
+    solutionBody.innerHTML = "";
+    if (solution.length === 0) {
+      var emptySol = document.createElement("div");
+      emptySol.className = "empty-hint";
+      emptySol.textContent = "Ziehen Sie Zeilen hierher oder klicken Sie auf „→ Übernehmen“.";
+      solutionBody.appendChild(emptySol);
+    } else {
+      solution.forEach(function (id, idx) {
+        var card = buildCard(id, { role: "solution", gutterLabel: String(idx + 1) });
+        var state = solutionStates[idx];
+        if (state) card.classList.add(state);
+        solutionBody.appendChild(card);
+      });
+    }
+  }
+
+  var solutionStates = [];
+
+  function moveToSolution(id, atIndex) {
+    var poolIdx = pool.indexOf(id);
+    if (poolIdx === -1) return;
+    pool.splice(poolIdx, 1);
+    var insertAt = Math.max(0, Math.min(atIndex, solution.length));
+    solution.splice(insertAt, 0, id);
+    onEdit();
+  }
+
+  function moveToPool(id) {
+    var solIdx = solution.indexOf(id);
+    if (solIdx === -1) return;
+    solution.splice(solIdx, 1);
+    pool.push(id);
+    onEdit();
+  }
+
+  function moveWithinSolution(id, dir) {
+    var i = solution.indexOf(id);
+    if (i === -1) return;
+    var j = i + dir;
+    if (j < 0 || j >= solution.length) return;
+    var tmp = solution[i]; solution[i] = solution[j]; solution[j] = tmp;
+    onEdit();
+  }
+
+  function reorderSolution(id, targetIndex) {
+    var i = solution.indexOf(id);
+    if (i === -1) return;
+    solution.splice(i, 1);
+    if (targetIndex > i) targetIndex -= 1;
+    var insertAt = Math.max(0, Math.min(targetIndex, solution.length));
+    solution.splice(insertAt, 0, id);
+    onEdit();
+  }
+
+  function onEdit() {
+    solutionStates = [];
+    setConsole("Noch keine Prüfung durchgeführt.", "");
+    statusBadge.textContent = "ungelöst";
+    revealPanel.classList.remove("open");
+    render();
+  }
+
+  function setConsole(text, tone) {
+    consoleMsg.textContent = text;
+    consoleBody.classList.remove("tone-success", "tone-error");
+    if (tone) consoleBody.classList.add(tone);
+  }
+
+  function checkSolution() {
+    attempts += 1;
+    attemptBadge.textContent = attempts + (attempts === 1 ? " Prüfung" : " Prüfungen");
+
+    if (solution.length === 0) {
+      setConsole("Noch keine Zeilen platziert.", "");
+      return;
+    }
+
+    var mismatchIndex = -1;
+    var compareLen = Math.min(solution.length, CORRECT_ORDER.length);
+    for (var i = 0; i < compareLen; i++) {
+      if (solution[i] !== CORRECT_ORDER[i]) { mismatchIndex = i; break; }
+    }
+
+    solutionStates = solution.map(function () { return ""; });
+
+    if (mismatchIndex !== -1) {
+      for (var k = 0; k < mismatchIndex; k++) solutionStates[k] = "state-ok";
+      var badId = solution[mismatchIndex];
+      solutionStates[mismatchIndex] = badId === 99 ? "state-distractor-flag" : "state-error";
+      var pos = mismatchIndex + 1;
+      if (badId === 99) {
+        setConsole("Position " + pos + ": Diese Zeile gehört nicht zum Algorithmus (Ablenker erkannt).", "tone-error");
+      } else {
+        setConsole("Bis Position " + pos + " korrekt — ab Position " + pos + " stimmt die Reihenfolge nicht mehr.", "tone-error");
+      }
+      statusBadge.textContent = "noch nicht korrekt";
+      render();
+      return;
+    }
+
+    // no mismatch within compared range
+    if (solution.length < CORRECT_ORDER.length) {
+      for (var m = 0; m < solution.length; m++) solutionStates[m] = "state-ok";
+      var missing = CORRECT_ORDER.length - solution.length;
+      setConsole("Bisher korrekt — es fehlen noch " + missing + " Zeile" + (missing === 1 ? "" : "n") + ".", "");
+      statusBadge.textContent = "unvollständig";
+      render();
+      return;
+    }
+
+    // fully correct
+    for (var n = 0; n < solution.length; n++) solutionStates[n] = "state-ok";
+    setConsole("Vollständig korrekt — alle 11 Zeilen in der richtigen Reihenfolge.", "tone-success");
+    statusBadge.textContent = "gelöst";
+    revealCode.textContent = CORRECT_ORDER.map(function (id) {
+      var l = byId[id];
+      return "    ".repeat(l.indent) + l.code;
+    }).join("\n");
+    revealPanel.classList.add("open");
+    render();
+  }
+
+  document.getElementById("checkBtn").addEventListener("click", checkSolution);
+  document.getElementById("shuffleBtn").addEventListener("click", resetPuzzle);
+  document.getElementById("hintBtn").addEventListener("click", function () {
+    hintPanel.classList.toggle("open");
+    this.textContent = hintPanel.classList.contains("open") ? "Tipp ausblenden" : "Tipp anzeigen";
+  });
+
+  [poolBody, solutionBody].forEach(function (container) {
+    container.addEventListener("dragover", function (e) {
+      e.preventDefault();
+      container.classList.add("drag-over");
+    });
+    container.addEventListener("dragleave", function () {
+      container.classList.remove("drag-over");
+    });
+    container.addEventListener("drop", function (e) {
+      e.preventDefault();
+      container.classList.remove("drag-over");
+      if (!dragged) return;
+      var isPool = container === poolBody;
+
+      if (isPool) {
+        if (dragged.from === "solution") moveToPool(dragged.id);
+        return;
+      }
+
+      // dropping into solution: compute target index from cursor position
+      var cards = Array.prototype.filter.call(container.children, function (el) {
+        return el.classList && el.classList.contains("line-card");
+      });
+      var targetIndex = cards.length;
+      for (var i = 0; i < cards.length; i++) {
+        var rect = cards[i].getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) { targetIndex = i; break; }
+      }
+
+      if (dragged.from === "pool") {
+        moveToSolution(dragged.id, targetIndex);
+      } else {
+        reorderSolution(dragged.id, targetIndex);
+      }
+    });
+  });
+
+  resetPuzzle();
+})();
+</script>
