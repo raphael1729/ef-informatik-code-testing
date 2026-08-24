@@ -1,0 +1,521 @@
+<meta charset="UTF-8">
+<title>Algorithmus-Duell — Lineare vs. Binäre Suche</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F6F7FA;
+    --surface: #FFFFFF;
+    --surface-gutter: #EEF1F6;
+    --border: #D7DCE5;
+    --border-strong: #C3CADA;
+    --ink: #23262B;
+    --ink-muted: #6B7180;
+    --ink-faint: #9AA0AC;
+    --accent: #0072B2;
+    --accent-ink: #FFFFFF;
+    --accent-soft: #E4F0F9;
+    --success: #009E73;
+    --success-soft: #E1F5EE;
+    --error: #D55E00;
+    --error-soft: #FBEAE0;
+    --shadow: 0 8px 24px -12px rgba(35, 38, 43, 0.25);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171C;
+      --surface: #1B1F26;
+      --surface-gutter: #12151A;
+      --border: #2C313B;
+      --border-strong: #3A4150;
+      --ink: #E7E9EE;
+      --ink-muted: #9BA2B0;
+      --ink-faint: #6C7484;
+      --accent: #5FB4E8;
+      --accent-ink: #0B1520;
+      --accent-soft: #1E2C38;
+      --success: #3FCFA4;
+      --success-soft: #163229;
+      --error: #FF8F52;
+      --error-soft: #33201A;
+      --shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.55);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --bg: #14171C;
+    --surface: #1B1F26;
+    --surface-gutter: #12151A;
+    --border: #2C313B;
+    --border-strong: #3A4150;
+    --ink: #E7E9EE;
+    --ink-muted: #9BA2B0;
+    --ink-faint: #6C7484;
+    --accent: #5FB4E8;
+    --accent-ink: #0B1520;
+    --accent-soft: #1E2C38;
+    --success: #3FCFA4;
+    --success-soft: #163229;
+    --error: #FF8F52;
+    --error-soft: #33201A;
+    --shadow: 0 8px 28px -12px rgba(0, 0, 0, 0.55);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: clamp(1rem, 3vw, 2.5rem);
+  }
+
+  .page { max-width: 1150px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.25rem; }
+
+  code, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  header.top {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+    gap: 0.75rem 1.5rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);
+  }
+  .title-block h1 { margin: 0 0 0.3rem 0; font-size: clamp(1.35rem, 2.4vw, 1.7rem); font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  .title-block p { margin: 0; color: var(--ink-muted); font-size: 0.95rem; max-width: 68ch; }
+
+  /* ---------- Control panel ---------- */
+  .controls {
+    display: flex; flex-wrap: wrap; align-items: end; gap: 0.9rem;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.9rem 1.1rem; box-shadow: var(--shadow);
+  }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .field label { font-size: 0.72rem; color: var(--ink-muted); letter-spacing: 0.03em; text-transform: uppercase; }
+  select {
+    font-family: "IBM Plex Sans", sans-serif; font-size: 0.88rem; color: var(--ink);
+    background: var(--surface-gutter); border: 1px solid var(--border-strong); border-radius: 6px;
+    padding: 0.5rem 0.6rem; min-width: 12rem;
+  }
+  .btn-row { display: flex; gap: 0.5rem; margin-left: auto; flex-wrap: wrap; }
+  .btn {
+    all: unset; cursor: pointer; font-family: "IBM Plex Sans", sans-serif; font-size: 0.88rem; font-weight: 600;
+    padding: 0.58rem 1rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.4rem;
+  }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+  .btn-ghost { background: var(--surface); border: 1px solid var(--border-strong); color: var(--ink); }
+  .btn-ghost:hover:not(:disabled) { background: var(--surface-gutter); }
+
+  /* ---------- Lanes (race track) ---------- */
+  .lane {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .lane-head {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+    gap: 0.5rem 1rem; padding: 0.7rem 1rem; background: var(--surface-gutter); border-bottom: 1px solid var(--border);
+  }
+  .lane-name { font-weight: 700; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem; }
+  .lane-name .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ink-faint); flex-shrink: 0; }
+  .lane[data-algo="linear"] .lane-name .dot { background: var(--accent); }
+  .lane[data-algo="binary"] .lane-name .dot { background: var(--success); }
+  .lane-badges { display: flex; gap: 0.5rem; align-items: center; }
+  .badge {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.78rem; padding: 0.3rem 0.6rem; border-radius: 5px;
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink-muted); white-space: nowrap;
+  }
+  .badge.status-found { color: var(--success); border-color: var(--success); }
+  .badge.status-not-found { color: var(--error); border-color: var(--error); }
+
+  .track { padding: 1.1rem 1rem 0.5rem; overflow-x: auto; }
+  .track-inner { position: relative; display: inline-flex; gap: 6px; padding-top: 14px; }
+
+  .bracket {
+    position: absolute; top: 0; height: 6px; border-radius: 3px; background: var(--success);
+    opacity: 0; transition: left 0.35s ease, width 0.35s ease, opacity 0.2s ease;
+  }
+  .bracket.visible { opacity: 1; }
+
+  .box {
+    flex-shrink: 0; width: 62px; height: 62px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; transition: background-color 0.25s ease, border-color 0.25s ease, opacity 0.25s ease, transform 0.15s ease;
+  }
+  .box .val { font-family: "IBM Plex Mono", monospace; font-size: 0.86rem; font-weight: 600; color: var(--ink); }
+  .box .name { font-size: 0.62rem; color: var(--ink-faint); max-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .box.checked { background: var(--surface-gutter); }
+  .box.excluded { opacity: 0.35; }
+  .box.cur { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-3px); box-shadow: 0 4px 10px -4px rgba(0,114,178,0.4); }
+  .box.found { border-color: var(--success); background: var(--success-soft); transform: translateY(-3px); }
+  .box.found .val { color: var(--success); }
+
+  .legend { padding: 0.55rem 1rem 0.9rem; font-size: 0.76rem; color: var(--ink-faint); }
+  .legend .swatch { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 0.3rem; vertical-align: middle; }
+
+  /* ---------- Console ---------- */
+  .console {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.88rem; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--surface-gutter); overflow: hidden;
+  }
+  .console-head { padding: 0.4rem 0.75rem; font-size: 0.72rem; color: var(--ink-faint); border-bottom: 1px solid var(--border); letter-spacing: 0.04em; text-transform: uppercase; }
+  .console-body { padding: 0.85rem 0.9rem; display: flex; gap: 0.5rem; align-items: flex-start; min-height: 1.4rem; }
+  .console-body .prompt { color: var(--accent); flex-shrink: 0; }
+  .console-body .msg { color: var(--ink-muted); line-height: 1.5; }
+  .console-body.tone-success .msg { color: var(--success); }
+  .console-body.tone-info .msg { color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="page">
+
+  <header class="top">
+    <div class="title-block">
+      <h1>Algorithmus-Duell — Lineare vs. Binäre Suche</h1>
+      <p>Beide Verfahren suchen gleichzeitig denselben Wert in derselben (sortierten) Kopfgeld-Liste. Gewonnen hat, wer mit weniger Vergleichen zum Ergebnis kommt.</p>
+    </div>
+  </header>
+
+  <div class="controls">
+    <div class="field">
+      <label for="targetSelect">Gesucht</label>
+      <select id="targetSelect"></select>
+    </div>
+    <div class="field">
+      <label for="speedSelect">Tempo</label>
+      <select id="speedSelect">
+        <option value="1000">Langsam</option>
+        <option value="600" selected>Normal</option>
+        <option value="280">Schnell</option>
+      </select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="randomBtn" type="button">🎲 Zufälliges Ziel</button>
+      <button class="btn btn-ghost" id="stepBtn" type="button">→ Einzelschritt</button>
+      <button class="btn btn-ghost" id="resetBtn" type="button">↻ Zurücksetzen</button>
+      <button class="btn btn-primary" id="playBtn" type="button">▶ Duell starten</button>
+    </div>
+  </div>
+
+  <section class="lane" data-algo="linear">
+    <div class="lane-head">
+      <div class="lane-name"><span class="dot"></span>Lineare Suche</div>
+      <div class="lane-badges">
+        <span class="badge mono" id="linearCount">0 Vergleiche</span>
+        <span class="badge" id="linearStatus">bereit</span>
+      </div>
+    </div>
+    <div class="track"><div class="track-inner" id="linearTrack"></div></div>
+    <div class="legend"><span class="swatch" style="background:var(--accent)"></span>gerade geprüft &nbsp;&nbsp;<span class="swatch" style="background:var(--surface-gutter);border:1px solid var(--border)"></span>bereits geprüft</div>
+  </section>
+
+  <section class="lane" data-algo="binary">
+    <div class="lane-head">
+      <div class="lane-name"><span class="dot"></span>Binäre Suche</div>
+      <div class="lane-badges">
+        <span class="badge mono" id="binaryCount">0 Vergleiche</span>
+        <span class="badge" id="binaryStatus">bereit</span>
+      </div>
+    </div>
+    <div class="track"><div class="track-inner" id="binaryTrack"></div></div>
+    <div class="legend"><span class="swatch" style="background:var(--accent)"></span>aktuelle Mitte &nbsp;&nbsp;<span class="swatch" style="background:var(--ink-faint);opacity:0.5"></span>ausgeschlossener Bereich &nbsp;&nbsp;<span class="swatch" style="background:var(--success)"></span>aktuelles Suchfenster</div>
+  </section>
+
+  <div class="console">
+    <div class="console-head">Rückmeldung</div>
+    <div class="console-body" id="consoleBody" aria-live="polite">
+      <span class="prompt">&gt;</span>
+      <span class="msg" id="consoleMsg">Ziel wählen und „Duell starten" klicken.</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Fiktive Übungsdaten (Kopfgeld in Mio. Berry), aufsteigend sortiert.
+  var CREW = [
+    { name: "Coby", value: 1 },
+    { name: "Chopper", value: 50 },
+    { name: "Usopp", value: 95 },
+    { name: "Nami", value: 150 },
+    { name: "Brook", value: 210 },
+    { name: "Franky", value: 275 },
+    { name: "Robin", value: 340 },
+    { name: "Sanji", value: 400 },
+    { name: "Zoro", value: 460 },
+    { name: "Jinbe", value: 520 },
+    { name: "Law", value: 580 },
+    { name: "Kid", value: 650 },
+    { name: "Katakuri", value: 720 },
+    { name: "Shanks", value: 800 },
+    { name: "Kaido", value: 900 },
+    { name: "Luffy", value: 1000 }
+  ];
+  var ABSENT_VALUE = 690;
+
+  var targetSelect = document.getElementById("targetSelect");
+  var speedSelect = document.getElementById("speedSelect");
+  var randomBtn = document.getElementById("randomBtn");
+  var stepBtn = document.getElementById("stepBtn");
+  var resetBtn = document.getElementById("resetBtn");
+  var playBtn = document.getElementById("playBtn");
+  var linearTrack = document.getElementById("linearTrack");
+  var binaryTrack = document.getElementById("binaryTrack");
+  var linearCount = document.getElementById("linearCount");
+  var binaryCount = document.getElementById("binaryCount");
+  var linearStatus = document.getElementById("linearStatus");
+  var binaryStatus = document.getElementById("binaryStatus");
+  var consoleBody = document.getElementById("consoleBody");
+  var consoleMsg = document.getElementById("consoleMsg");
+
+  CREW.forEach(function (c) {
+    var opt = document.createElement("option");
+    opt.value = String(c.value);
+    opt.textContent = c.name + " (" + c.value + " Mio.)";
+    targetSelect.appendChild(opt);
+  });
+  var absentOpt = document.createElement("option");
+  absentOpt.value = String(ABSENT_VALUE);
+  absentOpt.textContent = "❌ Nicht im Array (" + ABSENT_VALUE + ")";
+  targetSelect.appendChild(absentOpt);
+  targetSelect.value = String(CREW[12].value); // Katakuri als Standard-Beispiel
+
+  var linearBoxes = [];
+  var binaryBoxes = [];
+  var bracketEl = document.createElement("div");
+  bracketEl.className = "bracket";
+
+  function buildTracks() {
+    linearTrack.innerHTML = "";
+    binaryTrack.innerHTML = "";
+    linearBoxes = [];
+    binaryBoxes = [];
+    CREW.forEach(function (c) {
+      var b1 = document.createElement("div");
+      b1.className = "box";
+      b1.innerHTML = '<span class="val">' + c.value + '</span><span class="name">' + c.name + '</span>';
+      linearTrack.appendChild(b1);
+      linearBoxes.push(b1);
+
+      var b2 = document.createElement("div");
+      b2.className = "box";
+      b2.innerHTML = '<span class="val">' + c.value + '</span><span class="name">' + c.name + '</span>';
+      binaryTrack.appendChild(b2);
+      binaryBoxes.push(b2);
+    });
+    binaryTrack.appendChild(bracketEl);
+  }
+  buildTracks();
+
+  function* linearSearchSteps(target) {
+    for (var i = 0; i < CREW.length; i++) {
+      yield { type: "check", index: i };
+      if (CREW[i].value === target) {
+        yield { type: "found", index: i };
+        return;
+      }
+    }
+    yield { type: "not-found" };
+  }
+
+  function* binarySearchSteps(target) {
+    var low = 0, high = CREW.length - 1;
+    while (low <= high) {
+      var mid = Math.floor((low + high) / 2);
+      yield { type: "check", index: mid, low: low, high: high };
+      if (CREW[mid].value === target) {
+        yield { type: "found", index: mid };
+        return;
+      } else if (CREW[mid].value < target) {
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    yield { type: "not-found" };
+  }
+
+  var target = null;
+  var linearGen, binaryGen;
+  var linearState, binaryState;
+  var timer = null;
+  var running = false;
+
+  function freshState() {
+    return { comparisons: 0, status: "idle", currentIndex: -1, checked: {}, low: 0, high: CREW.length - 1, foundIndex: -1, finished: false };
+  }
+
+  function resetRace() {
+    stopPlay();
+    target = parseInt(targetSelect.value, 10);
+    linearGen = linearSearchSteps(target);
+    binaryGen = binarySearchSteps(target);
+    linearState = freshState();
+    binaryState = freshState();
+    bracketEl.classList.remove("visible");
+    setConsole("Ziel: " + describeTarget(target) + " — bereit zum Start.", "");
+    renderAll();
+  }
+
+  function describeTarget(v) {
+    var found = CREW.filter(function (c) { return c.value === v; })[0];
+    return found ? (found.name + " (" + v + " Mio.)") : ("Wert " + v + " (nicht in der Liste)");
+  }
+
+  function setConsole(text, tone) {
+    consoleMsg.textContent = text;
+    consoleBody.classList.remove("tone-success", "tone-info");
+    if (tone) consoleBody.classList.add(tone);
+  }
+
+  function tickOne(gen, state) {
+    if (state.finished) return;
+    var next = gen.next();
+    if (next.done) { state.finished = true; return; }
+    var value = next.value;
+    if (value.type === "check") {
+      state.status = "running";
+      state.comparisons++;
+      state.currentIndex = value.index;
+      state.checked[value.index] = true;
+      if (value.low !== undefined) { state.low = value.low; state.high = value.high; }
+    } else if (value.type === "found") {
+      state.status = "found";
+      state.foundIndex = value.index;
+      state.finished = true;
+    } else if (value.type === "not-found") {
+      state.status = "not-found";
+      state.finished = true;
+    }
+  }
+
+  function renderLane(boxes, state, isBinary) {
+    boxes.forEach(function (box, i) {
+      box.classList.remove("cur", "checked", "excluded", "found");
+      if (state.status === "found" && i === state.foundIndex) {
+        box.classList.add("found");
+      } else if (i === state.currentIndex && (state.status === "running")) {
+        box.classList.add("cur");
+      } else if (isBinary) {
+        if (i < state.low || i > state.high) box.classList.add("excluded");
+      } else {
+        if (state.checked[i]) box.classList.add("checked");
+      }
+    });
+
+    if (isBinary) {
+      if (state.status === "running" || state.status === "found") {
+        var lo = boxes[state.low], hi = boxes[state.high];
+        if (lo && hi) {
+          bracketEl.style.left = lo.offsetLeft + "px";
+          bracketEl.style.width = (hi.offsetLeft + hi.offsetWidth - lo.offsetLeft) + "px";
+          bracketEl.classList.add("visible");
+        }
+      } else if (state.status === "not-found" || state.status === "idle") {
+        bracketEl.classList.remove("visible");
+      }
+    }
+  }
+
+  function renderBadges() {
+    linearCount.textContent = linearState.comparisons + (linearState.comparisons === 1 ? " Vergleich" : " Vergleiche");
+    binaryCount.textContent = binaryState.comparisons + (binaryState.comparisons === 1 ? " Vergleich" : " Vergleiche");
+
+    function statusLabel(s) {
+      if (s.status === "found") return "gefunden";
+      if (s.status === "not-found") return "nicht gefunden";
+      if (s.status === "running") return "läuft…";
+      return "bereit";
+    }
+    linearStatus.textContent = statusLabel(linearState);
+    binaryStatus.textContent = statusLabel(binaryState);
+    linearStatus.classList.toggle("status-found", linearState.status === "found");
+    linearStatus.classList.toggle("status-not-found", linearState.status === "not-found");
+    binaryStatus.classList.toggle("status-found", binaryState.status === "found");
+    binaryStatus.classList.toggle("status-not-found", binaryState.status === "not-found");
+  }
+
+  function renderAll() {
+    renderLane(linearBoxes, linearState, false);
+    renderLane(binaryBoxes, binaryState, true);
+    renderBadges();
+  }
+
+  function bothFinished() {
+    return linearState.finished && binaryState.finished;
+  }
+
+  function announceResult() {
+    var lc = linearState.comparisons, bc = binaryState.comparisons;
+    var lWord = lc === 1 ? "Vergleich" : "Vergleiche";
+    var bWord = bc === 1 ? "Vergleich" : "Vergleiche";
+    var base = "Linear: " + lc + " " + lWord + " · Binär: " + bc + " " + bWord + ". ";
+    if (linearState.status === "not-found") {
+      setConsole(base + "Ziel nicht vorhanden — beide Verfahren melden das korrekt. " + (bc < lc ? "Binäre Suche gewinnt deutlich." : "Unentschieden."), "tone-success");
+    } else if (lc < bc) {
+      setConsole(base + "Überraschung: Lineare Suche gewinnt bei diesem Ziel — guter Grenzfall für die Best-Case-Diskussion!", "tone-success");
+    } else if (bc < lc) {
+      setConsole(base + "Binäre Suche gewinnt.", "tone-success");
+    } else {
+      setConsole(base + "Unentschieden.", "tone-success");
+    }
+  }
+
+  function tick() {
+    if (!linearState.finished) tickOne(linearGen, linearState);
+    if (!binaryState.finished) tickOne(binaryGen, binaryState);
+    renderAll();
+    if (bothFinished()) {
+      stopPlay();
+      announceResult();
+    } else if (running) {
+      setConsole("Duell läuft …", "");
+    }
+  }
+
+  function startPlay() {
+    if (running) return;
+    if (bothFinished()) resetRace();
+    running = true;
+    playBtn.textContent = "⏸ Pause";
+    stepBtn.disabled = true;
+    var interval = parseInt(speedSelect.value, 10);
+    timer = setInterval(tick, interval);
+  }
+
+  function stopPlay() {
+    running = false;
+    playBtn.textContent = "▶ Duell starten";
+    stepBtn.disabled = false;
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  playBtn.addEventListener("click", function () {
+    if (running) stopPlay(); else startPlay();
+  });
+  stepBtn.addEventListener("click", function () {
+    if (bothFinished()) { resetRace(); return; }
+    tick();
+  });
+  resetBtn.addEventListener("click", resetRace);
+  randomBtn.addEventListener("click", function () {
+    var i = Math.floor(Math.random() * targetSelect.options.length);
+    targetSelect.selectedIndex = i;
+    resetRace();
+  });
+  targetSelect.addEventListener("change", resetRace);
+  speedSelect.addEventListener("change", function () {
+    if (running) { stopPlay(); startPlay(); }
+  });
+
+  resetRace();
+})();
+</script>
