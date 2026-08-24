@@ -21,6 +21,8 @@
     --error: #D55E00;
     --error-soft: #FBEAE0;
     --shadow: 0 8px 24px -12px rgba(35, 38, 43, 0.25);
+    --chart-linear: #0072B2;
+    --chart-binary: #009E73;
   }
 
   @media (prefers-color-scheme: dark) {
@@ -169,6 +171,53 @@
   .console-body.tone-success .msg { color: var(--success); }
   .console-body.tone-info .msg { color: var(--ink); }
 
+  /* ---------- Simulation ---------- */
+  .sim {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    box-shadow: var(--shadow); overflow: hidden;
+  }
+  .sim-head {
+    padding: 0.85rem 1.1rem 0.2rem;
+  }
+  .sim-head h2 { margin: 0 0 0.25rem; font-size: 1.02rem; font-weight: 700; }
+  .sim-head p { margin: 0; font-size: 0.86rem; color: var(--ink-muted); max-width: 68ch; }
+  .sim-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 0.9rem; padding: 0.9rem 1.1rem; }
+  .sim-controls input[type="number"] {
+    font-family: "IBM Plex Mono", monospace; font-size: 0.88rem; color: var(--ink);
+    background: var(--surface-gutter); border: 1px solid var(--border-strong); border-radius: 6px;
+    padding: 0.5rem 0.6rem; width: 7rem;
+  }
+  .sim-results { padding: 0 1.1rem 1.1rem; }
+  .sim-summary {
+    font-size: 0.9rem; color: var(--ink);
+    background: var(--surface-gutter); border: 1px solid var(--border); border-radius: 8px;
+    padding: 0.75rem 0.9rem; margin-bottom: 1.1rem; line-height: 1.75;
+  }
+  .sim-summary .sum-row { display: flex; align-items: center; }
+  .sim-summary .sum-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.45rem; flex-shrink: 0; }
+  .sim-summary .sum-row strong { font-family: "IBM Plex Mono", monospace; }
+  .sim-summary .sum-highlight { margin-top: 0.25rem; font-weight: 600; color: var(--ink); }
+  .sim-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.1rem; }
+  .sim-chart h3 { margin: 0 0 0.5rem; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 0.45rem; }
+  .sim-chart h3 .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .sim-chart[data-algo="linear"] h3 .dot { background: var(--chart-linear); }
+  .sim-chart[data-algo="binary"] h3 .dot { background: var(--chart-binary); }
+  .hist { width: 100%; height: auto; overflow: visible; display: block; }
+  .hist .bar { cursor: pointer; transition: opacity 0.15s ease, transform 0.15s ease; transform-box: fill-box; transform-origin: bottom; }
+  .hist .bar:hover, .hist .bar:focus-visible { opacity: 0.72; transform: translateY(-2px); outline: none; }
+  .hist .bar-base { pointer-events: none; }
+  .hist .axis-label { font-family: "IBM Plex Mono", monospace; font-size: 9px; fill: var(--ink-faint); }
+  .hist .grid-line { stroke: var(--border); stroke-width: 1; }
+  .hist .mean-line { stroke: var(--ink-muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .hist .mean-label { font-family: "IBM Plex Sans", sans-serif; font-size: 10px; font-weight: 600; fill: var(--ink-muted); }
+
+  .chart-tip {
+    position: fixed; pointer-events: none; z-index: 50; background: var(--ink); color: var(--bg);
+    font-family: "IBM Plex Mono", monospace; font-size: 0.76rem; padding: 0.35rem 0.55rem; border-radius: 5px;
+    box-shadow: var(--shadow); opacity: 0; transition: opacity 0.1s ease; white-space: nowrap;
+  }
+  .chart-tip.visible { opacity: 1; }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -234,7 +283,37 @@
     </div>
   </div>
 
+  <section class="sim">
+    <div class="sim-head">
+      <h2>Simulation: viele Testläufe</h2>
+      <p>Statt einem einzelnen Duell: führt viele Testläufe mit zufälligem Ziel durch (ohne Animation) und zeigt, wie die Anzahl Vergleiche über alle Läufe verteilt ist.</p>
+    </div>
+    <div class="sim-controls">
+      <div class="field">
+        <label for="runsInput">Anzahl Testläufe</label>
+        <input type="number" id="runsInput" min="1" max="20000" step="1" value="200">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="simBtn" type="button">▶ Simulation starten</button>
+      </div>
+    </div>
+    <div class="sim-results" id="simResults" hidden>
+      <div class="sim-summary" id="simSummary"></div>
+      <div class="sim-charts">
+        <div class="sim-chart" data-algo="linear">
+          <h3><span class="dot"></span>Lineare Suche</h3>
+          <svg class="hist" id="linearHist"></svg>
+        </div>
+        <div class="sim-chart" data-algo="binary">
+          <h3><span class="dot"></span>Binäre Suche</h3>
+          <svg class="hist" id="binaryHist"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
+<div class="chart-tip" id="chartTip"></div>
 
 <script>
 (function () {
@@ -515,6 +594,187 @@
   speedSelect.addEventListener("change", function () {
     if (running) { stopPlay(); startPlay(); }
   });
+
+  // ---------- Simulation (viele Testläufe, ohne Animation) ----------
+
+  var runsInput = document.getElementById("runsInput");
+  var simBtn = document.getElementById("simBtn");
+  var simResults = document.getElementById("simResults");
+  var simSummary = document.getElementById("simSummary");
+  var linearHist = document.getElementById("linearHist");
+  var binaryHist = document.getElementById("binaryHist");
+  var chartTip = document.getElementById("chartTip");
+  var SVG_NS = "http://www.w3.org/2000/svg";
+
+  function countComparisons(genFactory, t) {
+    var gen = genFactory(t);
+    var n = 0;
+    var step = gen.next();
+    while (!step.done) {
+      if (step.value.type === "check") n++;
+      step = gen.next();
+    }
+    return n;
+  }
+
+  function meanOf(arr) {
+    return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+  }
+
+  function runSimulation(n) {
+    var targets = [];
+    for (var i = 0; i < targetSelect.options.length; i++) {
+      targets.push(parseInt(targetSelect.options[i].value, 10));
+    }
+    var lin = [], bin = [];
+    for (var r = 0; r < n; r++) {
+      var t = targets[Math.floor(Math.random() * targets.length)];
+      lin.push(countComparisons(linearSearchSteps, t));
+      bin.push(countComparisons(binarySearchSteps, t));
+    }
+    return { lin: lin, bin: bin };
+  }
+
+  function frequencies(counts, domainMax) {
+    var freq = [];
+    for (var v = 1; v <= domainMax; v++) freq.push(0);
+    counts.forEach(function (c) {
+      if (c >= 1 && c <= domainMax) freq[c - 1]++;
+    });
+    return freq;
+  }
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS(SVG_NS, tag);
+    for (var k in attrs) { el.setAttribute(k, attrs[k]); }
+    return el;
+  }
+
+  function showTip(evt, text) {
+    chartTip.textContent = text;
+    chartTip.style.left = (evt.clientX + 14) + "px";
+    chartTip.style.top = (evt.clientY + 14) + "px";
+    chartTip.classList.add("visible");
+  }
+  function hideTip() { chartTip.classList.remove("visible"); }
+
+  function renderHistogram(svg, counts, domainMax, colorVar) {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var freq = frequencies(counts, domainMax);
+    var maxFreq = Math.max.apply(null, freq.concat([1]));
+    var m = meanOf(counts);
+
+    var W = 520, H = 210;
+    var padL = 30, padR = 10, padT = 28, padB = 22;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+
+    svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Verteilung der Vergleichsanzahl über " + counts.length + " Testläufe, Mittelwert " + m.toFixed(2) + " Vergleiche.");
+
+    var gridVals = [0, Math.round(maxFreq / 2), maxFreq];
+    gridVals.forEach(function (gv) {
+      var y = padT + plotH - (maxFreq > 0 ? (gv / maxFreq) * plotH : 0);
+      svg.appendChild(svgEl("line", { x1: padL, x2: padL + plotW, y1: y, y2: y, class: "grid-line" }));
+      var lbl = svgEl("text", { x: padL - 6, y: y + 3, class: "axis-label", "text-anchor": "end" });
+      lbl.textContent = String(gv);
+      svg.appendChild(lbl);
+    });
+
+    var slot = plotW / domainMax;
+    var barW = Math.max(3, Math.min(24, slot - 3));
+
+    for (var v = 1; v <= domainMax; v++) {
+      var f = freq[v - 1];
+      var barH = maxFreq > 0 ? (f / maxFreq) * plotH : 0;
+      var x = padL + (v - 1) * slot + (slot - barW) / 2;
+      var y = padT + plotH - barH;
+
+      var rect = svgEl("rect", {
+        x: x, y: y, width: barW, height: barH,
+        rx: 4, ry: 4, style: "fill:var(" + colorVar + ")", class: "bar", tabindex: "0", focusable: "true"
+      });
+      svg.appendChild(rect);
+      if (barH > 0) {
+        var baseH = Math.min(4, barH);
+        svg.appendChild(svgEl("rect", {
+          x: x, y: padT + plotH - baseH, width: barW, height: baseH,
+          style: "fill:var(" + colorVar + ")", class: "bar-base"
+        }));
+      }
+
+      var pct = counts.length ? Math.round((f / counts.length) * 100) : 0;
+      var tipText = v + (v === 1 ? " Vergleich" : " Vergleiche") + ": " + f + "× (" + pct + "%)";
+      (function (rectEl, text) {
+        rectEl.addEventListener("pointermove", function (e) { showTip(e, text); });
+        rectEl.addEventListener("pointerleave", hideTip);
+        rectEl.addEventListener("focus", function (e) {
+          var box = rectEl.getBoundingClientRect();
+          showTip({ clientX: box.left, clientY: box.top }, text);
+        });
+        rectEl.addEventListener("blur", hideTip);
+      })(rect, tipText);
+
+      var xlbl = svgEl("text", { x: x + barW / 2, y: H - 5, class: "axis-label", "text-anchor": "middle" });
+      xlbl.textContent = String(v);
+      svg.appendChild(xlbl);
+    }
+
+    var meanX = padL + (m - 0.5) * slot;
+    svg.appendChild(svgEl("line", { x1: meanX, x2: meanX, y1: padT - 8, y2: padT + plotH, class: "mean-line" }));
+    var meanLbl = svgEl("text", { x: meanX, y: padT - 12, class: "mean-label", "text-anchor": "middle" });
+    meanLbl.textContent = "⌀ " + m.toFixed(2);
+    svg.appendChild(meanLbl);
+  }
+
+  function summaryRow(colorVar, label, m) {
+    var row = document.createElement("div");
+    row.className = "sum-row";
+    var dot = document.createElement("span");
+    dot.className = "sum-dot";
+    dot.style.background = "var(" + colorVar + ")";
+    row.appendChild(dot);
+    var txt = document.createElement("span");
+    txt.textContent = label + ": Ø ";
+    row.appendChild(txt);
+    var strong = document.createElement("strong");
+    strong.textContent = m.toFixed(2) + (Math.abs(m - 1) < 1e-9 ? " Vergleich" : " Vergleiche");
+    row.appendChild(strong);
+    return row;
+  }
+
+  function runAndRenderSimulation() {
+    var n = parseInt(runsInput.value, 10);
+    if (!n || n < 1) n = 1;
+    if (n > 20000) n = 20000;
+    runsInput.value = String(n);
+
+    var result = runSimulation(n);
+    var domainMax = Math.max.apply(null, result.lin.concat(result.bin).concat([1]));
+    renderHistogram(linearHist, result.lin, domainMax, "--chart-linear");
+    renderHistogram(binaryHist, result.bin, domainMax, "--chart-binary");
+
+    var lm = meanOf(result.lin), bm = meanOf(result.bin);
+
+    while (simSummary.firstChild) simSummary.removeChild(simSummary.firstChild);
+    var introRow = document.createElement("div");
+    introRow.className = "sum-row";
+    introRow.textContent = n + " Testläufe · Ziel jeweils zufällig (gleichverteilt) aus allen " + targetSelect.options.length + " Optionen gewählt.";
+    simSummary.appendChild(introRow);
+    simSummary.appendChild(summaryRow("--chart-linear", "Lineare Suche", lm));
+    simSummary.appendChild(summaryRow("--chart-binary", "Binäre Suche", bm));
+
+    var factorRow = document.createElement("div");
+    factorRow.className = "sum-highlight";
+    if (bm > 0) {
+      factorRow.textContent = "Binäre Suche braucht im Schnitt " + (lm / bm).toFixed(1) + "× weniger Vergleiche.";
+    }
+    simSummary.appendChild(factorRow);
+
+    simResults.hidden = false;
+  }
+
+  simBtn.addEventListener("click", runAndRenderSimulation);
 
   resetRace();
 })();
