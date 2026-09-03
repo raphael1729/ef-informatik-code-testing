@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selection vs Bubble vs Insertion</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAF8F4;
+    --surface: #FFFFFF;
+    --surface-2: #F2EFE7;
+    --border: #E4E0D5;
+    --text: #1C1D1B;
+    --text-muted: #6C6F6A;
+    --accent: #0072B2;
+    --accent-ink: #FFFFFF;
+    --track-bg: #EFEBE1;
+    --chart-selection: #0072B2;
+    --chart-bubble: #009E73;
+    --chart-insertion: #D55E00;
+    --danger-bg: rgba(213, 94, 0, 0.10);
+    --focus-ring: #0072B2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171A;
+      --surface: #1B1F22;
+      --surface-2: #21262A;
+      --border: #2C3236;
+      --text: #ECEEEC;
+      --text-muted: #9BA1A0;
+      --accent: #5CB1E0;
+      --accent-ink: #0B1013;
+      --track-bg: #262B2F;
+      --danger-bg: rgba(213, 94, 0, 0.16);
+      --focus-ring: #5CB1E0;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171A;
+    --surface: #1B1F22;
+    --surface-2: #21262A;
+    --border: #2C3236;
+    --text: #ECEEEC;
+    --text-muted: #9BA1A0;
+    --accent: #5CB1E0;
+    --accent-ink: #0B1013;
+    --track-bg: #262B2F;
+    --danger-bg: rgba(213, 94, 0, 0.16);
+    --focus-ring: #5CB1E0;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+    padding: 28px 20px 60px;
+    display: flex;
+    justify-content: center;
+  }
+  main { width: 100%; max-width: 960px; }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace; font-variant-numeric: tabular-nums; }
+
+  header { margin-bottom: 22px; }
+  h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
+  }
+  .subtitle { color: var(--text-muted); font-size: 0.95rem; max-width: 62ch; line-height: 1.5; margin: 0; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+  }
+  .control-group { display: flex; gap: 6px; align-items: center; }
+  .control-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    margin-right: 2px;
+  }
+  button {
+    font-family: inherit;
+    font-size: 0.86rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 7px 13px;
+    cursor: pointer;
+    transition: background 0.12s ease, border-color 0.12s ease;
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button:disabled { opacity: 0.45; cursor: default; }
+
+  .lane {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px 16px;
+    margin-bottom: 12px;
+    background: var(--surface);
+  }
+  .lane-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .lane-name {
+    font-weight: 700;
+    font-size: 1.02rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .swatch { width: 11px; height: 11px; border-radius: 3px; display: inline-block; }
+  .lane-stats { font-size: 0.86rem; color: var(--text-muted); display: flex; gap: 16px; }
+  .lane-stats b { color: var(--text); font-weight: 600; }
+  .lane-status {
+    font-size: 0.74rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--surface-2);
+    color: var(--text-muted);
+  }
+  .lane-status.finished { background: var(--danger-bg); color: var(--text); }
+
+  .track {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 130px;
+    background: var(--track-bg);
+    border-radius: 8px;
+    padding: 8px 8px 6px;
+  }
+  .bar-col {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    min-width: 0;
+  }
+  .bar {
+    width: 100%;
+    border-radius: 4px 4px 2px 2px;
+    transition: height 0.18s ease, background 0.15s ease, opacity 0.15s ease;
+    position: relative;
+  }
+  .bar-label {
+    font-size: 0.62rem;
+    color: var(--accent-ink);
+    text-align: center;
+    padding-top: 2px;
+    font-weight: 600;
+  }
+
+  .result-banner {
+    font-size: 0.92rem;
+    padding: 10px 14px;
+    border-radius: 9px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .result-banner b { font-weight: 700; }
+  .result-banner.hidden { display: none; }
+
+  h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0 0 6px;
+  }
+  .panel-note { font-size: 0.85rem; color: var(--text-muted); margin: 0 0 14px; line-height: 1.5; max-width: 68ch; }
+
+  .sim-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  input[type="number"] {
+    font-family: inherit;
+    font-size: 0.88rem;
+    width: 90px;
+    padding: 6px 9px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  input[type="number"]:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+
+  svg text { font-family: "IBM Plex Mono", monospace; fill: var(--text); }
+  .axis-label { fill: var(--text-muted); }
+  .chart-wrap { overflow-x: auto; }
+  .sim-summary {
+    margin-top: 12px;
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .sim-summary .hl { font-weight: 700; }
+
+  footer {
+    margin-top: 22px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  @media (max-width: 560px) {
+    .track { height: 100px; }
+    h1 { font-size: 1.35rem; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Selection vs Bubble vs Insertion</h1>
+    <p class="subtitle">Drei Sortierverfahren treten auf derselben Liste gegeneinander an. Jeder Schritt zeigt einen Vergleich – die Zähler unten entsprechen genau der Zählweise aus <span class="mono">sortierfunktionen_aufgabe5.py</span>.</p>
+  </header>
+
+  <section class="panel controls" aria-label="Steuerung">
+    <div class="control-group">
+      <span class="control-label">Ablauf</span>
+      <button id="btnPlay" class="primary">▶ Start</button>
+      <button id="btnStep">Einzelschritt</button>
+      <button id="btnReset">Zurücksetzen</button>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Tempo</span>
+      <button id="speedSlow" data-speed="420">Langsam</button>
+      <button id="speedMid" class="active" data-speed="160">Normal</button>
+      <button id="speedFast" data-speed="40">Schnell</button>
+    </div>
+    <div class="control-group">
+      <span class="control-label">Liste</span>
+      <button id="modeRandom" class="active">Zufällig</button>
+      <button id="modeSorted">Bereits sortiert</button>
+      <button id="btnReshuffle">🔀 Neu mischen</button>
+    </div>
+  </section>
+
+  <section id="lanes"></section>
+
+  <div id="resultBanner" class="result-banner hidden" role="status"></div>
+
+  <section class="panel" style="margin-top: 22px;">
+    <h2>Simulation: viele zufällige Listen</h2>
+    <p class="panel-note">Selection- und Bubblesort brauchen bei jeder Liste gleich viele Vergleiche – ob zufällig oder fast sortiert, spielt keine Rolle. Insertionsort dagegen hängt stark von der Reihenfolge ab. Die Simulation zieht viele zufällige Listen und zeigt die Verteilung der Insertionsort-Vergleiche im Vergleich zum festen Wert der beiden anderen Verfahren.</p>
+    <div class="sim-controls">
+      <span class="control-label">Anzahl Testläufe</span>
+      <input type="number" id="simRuns" value="500" min="10" max="5000" step="10">
+      <button id="btnSimulate" class="primary">Simulation starten</button>
+      <span id="simRunning" class="mono" style="font-size:0.82rem; color: var(--text-muted);"></span>
+    </div>
+    <div class="chart-wrap">
+      <svg id="simChart" width="900" height="260" viewBox="0 0 900 260" role="img" aria-label="Histogramm der Insertionsort-Vergleiche"></svg>
+    </div>
+    <div id="simSummary" class="sim-summary"></div>
+  </section>
+
+  <footer>
+    Listengrösse <span class="mono" id="footN"></span> Elemente · Zählweise identisch zu den Musterlösungen aus dem Sortier-Arbeitsblatt (Aufgabe 5) · Okabe-Ito-Palette
+  </footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  const N = 12;
+  const LANES = [
+    { key: "selection", name: "Selectionsort", color: "var(--chart-selection)", gen: selectionSortGen },
+    { key: "bubble", name: "Bubblesort", color: "var(--chart-bubble)", gen: bubbleSortGen },
+    { key: "insertion", name: "Insertionsort", color: "var(--chart-insertion)", gen: insertionSortGen },
+  ];
+
+  // ---------- Generators: comparison-counting mirrors sortierfunktionen_aufgabe5.py ----------
+  function* selectionSortGen(arr) {
+    const n = arr.length;
+    for (let i = 0; i < n - 1; i++) {
+      let minIdx = i;
+      for (let j = i + 1; j < n; j++) {
+        yield { type: "compare", a: j, b: minIdx };
+        if (arr[j] < arr[minIdx]) minIdx = j;
+      }
+      if (minIdx !== i) {
+        [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+        yield { type: "swap", a: i, b: minIdx, values: arr.slice() };
+      }
+      yield { type: "markSorted", index: i };
+    }
+    yield { type: "markSorted", index: n - 1 };
+    yield { type: "done" };
+  }
+
+  function* bubbleSortGen(arr) {
+    const n = arr.length;
+    for (let durchgang = 0; durchgang < n - 1; durchgang++) {
+      for (let i = 0; i < n - 1 - durchgang; i++) {
+        yield { type: "compare", a: i, b: i + 1 };
+        if (arr[i] > arr[i + 1]) {
+          [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+          yield { type: "swap", a: i, b: i + 1, values: arr.slice() };
+        }
+      }
+      yield { type: "markSorted", index: n - 1 - durchgang };
+    }
+    yield { type: "markSorted", index: 0 };
+    yield { type: "done" };
+  }
+
+  function* insertionSortGen(arr) {
+    const n = arr.length;
+    for (let i = 1; i < n; i++) {
+      const toInsert = arr[i];
+      let j = i - 1;
+      yield { type: "lift", index: i };
+      while (j >= 0) {
+        yield { type: "compare", a: j, b: i };
+        if (arr[j] > toInsert) {
+          arr[j + 1] = arr[j];
+          yield { type: "shift", from: j, to: j + 1, values: arr.slice() };
+          j--;
+        } else {
+          break;
+        }
+      }
+      arr[j + 1] = toInsert;
+      yield { type: "place", index: j + 1, values: arr.slice() };
+    }
+    yield { type: "markSorted", index: 0 };
+    yield { type: "done" };
+  }
+
+  // Silent counters (used by the simulation panel) -- identical counting logic, no yields.
+  function countSelection(values) {
+    const arr = values.slice();
+    const n = arr.length;
+    let cmp = 0;
+    for (let i = 0; i < n - 1; i++) {
+      let minIdx = i;
+      for (let j = i + 1; j < n; j++) {
+        cmp++;
+        if (arr[j] < arr[minIdx]) minIdx = j;
+      }
+      [arr[i], arr[minIdx]] = [arr[minIdx], arr[i]];
+    }
+    return cmp;
+  }
+  function countBubble(values) {
+    const arr = values.slice();
+    const n = arr.length;
+    let cmp = 0;
+    for (let d = 0; d < n - 1; d++) {
+      for (let i = 0; i < n - 1 - d; i++) {
+        cmp++;
+        if (arr[i] > arr[i + 1]) [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+      }
+    }
+    return cmp;
+  }
+  function countInsertion(values) {
+    const arr = values.slice();
+    const n = arr.length;
+    let cmp = 0;
+    for (let i = 1; i < n; i++) {
+      const toInsert = arr[i];
+      let j = i - 1;
+      while (j >= 0) {
+        cmp++;
+        if (arr[j] > toInsert) { arr[j + 1] = arr[j]; j--; } else break;
+      }
+      arr[j + 1] = toInsert;
+    }
+    return cmp;
+  }
+
+  // ---------- Array generation ----------
+  function randomArray(n) {
+    const vals = new Set();
+    while (vals.size < n) vals.add(8 + Math.floor(Math.random() * 90));
+    return Array.from(vals);
+  }
+  let baseValues = randomArray(N);
+  let mode = "random"; // "random" | "sorted"
+
+  function startingValues() {
+    return mode === "sorted" ? baseValues.slice().sort((a, b) => a - b) : baseValues.slice();
+  }
+
+  // ---------- Lane state ----------
+  const state = {};
+  function resetLane(l) {
+    const values = startingValues();
+    state[l.key] = {
+      values: values.slice(),
+      gen: l.gen(values.slice()),
+      compares: 0,
+      highlight: [],
+      sorted: new Set(),
+      lifted: -1,
+      done: false,
+    };
+  }
+  function resetAll() {
+    LANES.forEach(resetLane);
+    document.getElementById("resultBanner").classList.add("hidden");
+    render();
+  }
+
+  function stepLane(l) {
+    const s = state[l.key];
+    if (s.done) return;
+    const { value: step, done } = s.gen.next();
+    if (done) { s.done = true; return; }
+    switch (step.type) {
+      case "compare":
+        s.compares++;
+        s.highlight = [step.a, step.b];
+        break;
+      case "swap":
+        s.values = step.values;
+        s.highlight = [step.a, step.b];
+        break;
+      case "shift":
+        s.values = step.values;
+        s.highlight = [step.from, step.to];
+        break;
+      case "place":
+        s.values = step.values;
+        s.highlight = [step.index];
+        s.lifted = -1;
+        break;
+      case "lift":
+        s.lifted = step.index;
+        s.highlight = [];
+        break;
+      case "markSorted":
+        s.sorted.add(step.index);
+        break;
+      case "done":
+        s.done = true;
+        s.highlight = [];
+        break;
+    }
+  }
+
+  function allDone() { return LANES.every((l) => state[l.key].done); }
+
+  function tick() {
+    LANES.forEach(stepLane);
+    render();
+    if (allDone()) {
+      pause();
+      showResult();
+    }
+  }
+
+  // ---------- Rendering ----------
+  const lanesEl = document.getElementById("lanes");
+  LANES.forEach((l) => {
+    const div = document.createElement("div");
+    div.className = "lane";
+    div.id = "lane-" + l.key;
+    div.innerHTML =
+      '<div class="lane-head">' +
+        '<span class="lane-name"><span class="swatch" style="background:' + l.color + '"></span>' + l.name + "</span>" +
+        '<span class="lane-stats"><span class="lane-status" id="status-' + l.key + '">läuft</span>' +
+          '<span>Vergleiche: <b class="mono" id="cmp-' + l.key + '">0</b></span></span>' +
+      "</div>" +
+      '<div class="track" id="track-' + l.key + '"></div>';
+    lanesEl.appendChild(div);
+  });
+
+  function render() {
+    LANES.forEach((l) => {
+      const s = state[l.key];
+      const track = document.getElementById("track-" + l.key);
+      const maxVal = Math.max(...s.values);
+      track.innerHTML = "";
+      s.values.forEach((v, idx) => {
+        const col = document.createElement("div");
+        col.className = "bar-col";
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        const isHi = s.highlight.includes(idx);
+        const isSorted = s.sorted.has(idx);
+        const isLifted = idx === s.lifted;
+        bar.style.height = Math.max(6, (v / maxVal) * 100) + "%";
+        bar.style.background = isHi ? "var(--text)" : l.color;
+        bar.style.opacity = isSorted ? "0.55" : isLifted ? "0.4" : "1";
+        bar.innerHTML = '<div class="bar-label">' + v + "</div>";
+        col.appendChild(bar);
+        track.appendChild(col);
+      });
+      document.getElementById("cmp-" + l.key).textContent = s.compares;
+      const statusEl = document.getElementById("status-" + l.key);
+      if (s.done) {
+        statusEl.textContent = "fertig";
+        statusEl.classList.add("finished");
+      } else {
+        statusEl.textContent = "läuft";
+        statusEl.classList.remove("finished");
+      }
+    });
+  }
+
+  function showResult() {
+    const sorted = LANES.slice().sort((a, b) => state[a.key].compares - state[b.key].compares);
+    const banner = document.getElementById("resultBanner");
+    const parts = sorted.map((l, idx) => (idx === 0 ? "<b>" + l.name + "</b> (" + state[l.key].compares + ")" : l.name + " (" + state[l.key].compares + ")"));
+    let note = "";
+    if (mode === "sorted") {
+      note = " Auf der bereits sortierten Liste zeigt sich der Best Case: Insertionsort braucht kaum Vergleiche, Selection- und Bubblesort dagegen genau gleich viele wie sonst auch.";
+    } else {
+      note = " Bei einer zufälligen Liste liegen alle drei näher beieinander – schauen Sie sich die Simulation unten an, um das Muster über viele Listen zu sehen.";
+    }
+    banner.innerHTML = "Wenigste Vergleiche: " + parts.join(" · ") + "." + note;
+    banner.classList.remove("hidden");
+  }
+
+  // ---------- Controls ----------
+  let timer = null;
+  const btnPlay = document.getElementById("btnPlay");
+  let speed = 160;
+
+  function play() {
+    if (allDone()) resetAll();
+    timer = setInterval(tick, speed);
+    btnPlay.textContent = "⏸ Pause";
+  }
+  function pause() {
+    clearInterval(timer);
+    timer = null;
+    btnPlay.textContent = "▶ Start";
+  }
+  btnPlay.addEventListener("click", () => (timer ? pause() : play()));
+  document.getElementById("btnStep").addEventListener("click", () => {
+    pause();
+    if (allDone()) resetAll();
+    tick();
+  });
+  document.getElementById("btnReset").addEventListener("click", () => { pause(); resetAll(); });
+  document.getElementById("btnReshuffle").addEventListener("click", () => {
+    pause();
+    baseValues = randomArray(N);
+    resetAll();
+  });
+
+  [["speedSlow", 420], ["speedMid", 160], ["speedFast", 40]].forEach(([id, val]) => {
+    document.getElementById(id).addEventListener("click", (e) => {
+      speed = val;
+      document.querySelectorAll("#speedSlow,#speedMid,#speedFast").forEach((b) => b.classList.remove("active"));
+      e.target.classList.add("active");
+      if (timer) { pause(); play(); }
+    });
+  });
+
+  document.getElementById("modeRandom").addEventListener("click", (e) => {
+    pause(); mode = "random";
+    document.getElementById("modeRandom").classList.add("active");
+    document.getElementById("modeSorted").classList.remove("active");
+    resetAll();
+  });
+  document.getElementById("modeSorted").addEventListener("click", (e) => {
+    pause(); mode = "sorted";
+    document.getElementById("modeSorted").classList.add("active");
+    document.getElementById("modeRandom").classList.remove("active");
+    resetAll();
+  });
+
+  document.getElementById("footN").textContent = N;
+
+  // ---------- Simulation ----------
+  const SIM_N = 30;
+  function runSimulation(runs) {
+    const insertionCounts = [];
+    for (let r = 0; r < runs; r++) {
+      const arr = randomArray(SIM_N);
+      insertionCounts.push(countInsertion(arr));
+    }
+    const fixedCount = SIM_N * (SIM_N - 1) / 2; // Selection- und Bubblesort: immer gleich
+    return { insertionCounts, fixedCount };
+  }
+
+  function drawHistogram(insertionCounts, fixedCount) {
+    const svg = document.getElementById("simChart");
+    const W = 900, H = 260, ML = 46, MR = 20, MT = 18, MB = 46;
+    const plotW = W - ML - MR, plotH = H - MT - MB;
+
+    const domainMax = Math.round(fixedCount * 1.14);
+    const domainMin = 0;
+    const binCount = 24;
+    const binWidth = (domainMax - domainMin) / binCount;
+    const bins = new Array(binCount).fill(0);
+    insertionCounts.forEach((c) => {
+      let idx = Math.floor((c - domainMin) / binWidth);
+      if (idx >= binCount) idx = binCount - 1;
+      if (idx < 0) idx = 0;
+      bins[idx]++;
+    });
+    const maxFreq = Math.max(...bins, 1);
+
+    const x = (v) => ML + ((v - domainMin) / (domainMax - domainMin)) * plotW;
+    const barW = plotW / binCount;
+
+    let svgParts = [];
+    svgParts.push('<line x1="' + ML + '" y1="' + (MT + plotH) + '" x2="' + (ML + plotW) + '" y2="' + (MT + plotH) + '" stroke="var(--border)" stroke-width="1"/>');
+
+    bins.forEach((freq, i) => {
+      const h = (freq / maxFreq) * (plotH - 8);
+      const bx = ML + i * barW;
+      const by = MT + plotH - h;
+      const bw = Math.max(1, barW - 2);
+      svgParts.push('<rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + Math.max(0, h) + '" rx="3" fill="var(--chart-insertion)" opacity="0.85"><title>' +
+        Math.round(domainMin + i * binWidth) + '–' + Math.round(domainMin + (i + 1) * binWidth) + ' Vergleiche: ' + freq + ' Listen</title></rect>');
+    });
+
+    // reference line: fixed comparison count of selection/bubble
+    const fx = x(fixedCount) - 1;
+    svgParts.push('<line x1="' + fx + '" y1="' + MT + '" x2="' + fx + '" y2="' + (MT + plotH) + '" stroke="var(--chart-selection)" stroke-width="2" stroke-dasharray="5,4"/>');
+    svgParts.push('<text x="' + (fx - 6) + '" y="' + (MT + 12) + '" font-size="11" text-anchor="end">Selection-/Bubblesort: immer ' + fixedCount + '</text>');
+
+    // mean line for insertion
+    const mean = insertionCounts.reduce((a, b) => a + b, 0) / insertionCounts.length;
+    const mx = x(mean);
+    svgParts.push('<line x1="' + mx + '" y1="' + MT + '" x2="' + mx + '" y2="' + (MT + plotH) + '" stroke="var(--text)" stroke-width="1.5" stroke-dasharray="2,3"/>');
+    svgParts.push('<text x="' + (mx + 6) + '" y="' + (MT + 26) + '" font-size="11">Ø Insertionsort: ' + Math.round(mean) + '</text>');
+
+    // x axis ticks
+    [0, 0.25, 0.5, 0.75, 1].forEach((f) => {
+      const v = Math.round(domainMin + f * (domainMax - domainMin));
+      const tx = x(v);
+      svgParts.push('<text class="axis-label" x="' + tx + '" y="' + (MT + plotH + 20) + '" font-size="10.5" text-anchor="middle">' + v + "</text>");
+    });
+    svgParts.push('<text class="axis-label" x="' + (ML + plotW / 2) + '" y="' + (H - 6) + '" font-size="11" text-anchor="middle">Anzahl Vergleiche pro Liste (n = ' + SIM_N + ")</text>");
+
+    svg.innerHTML = svgParts.join("");
+  }
+
+  document.getElementById("btnSimulate").addEventListener("click", () => {
+    const input = document.getElementById("simRuns");
+    let runs = parseInt(input.value, 10);
+    if (!Number.isFinite(runs)) runs = 500;
+    runs = Math.max(10, Math.min(5000, runs));
+    input.value = runs;
+
+    const runningLabel = document.getElementById("simRunning");
+    runningLabel.textContent = "läuft …";
+    setTimeout(() => {
+      const { insertionCounts, fixedCount } = runSimulation(runs);
+      drawHistogram(insertionCounts, fixedCount);
+      const mean = insertionCounts.reduce((a, b) => a + b, 0) / insertionCounts.length;
+      const factor = (fixedCount / mean).toFixed(1);
+      document.getElementById("simSummary").innerHTML =
+        runs + " zufällige Listen der Länge " + SIM_N + " simuliert. Insertionsort braucht im Schnitt " +
+        '<span class="hl">' + Math.round(mean) + " Vergleiche</span>, Selection- und Bubblesort brauchen bei " +
+        "​jeder​ dieser Listen exakt <span class=\"hl\">" + fixedCount + " Vergleiche</span> – " +
+        "im Schnitt " + factor + "× mehr als Insertionsort. Der feste Wert von Selection-/Bubblesort schwankt " +
+        "nicht (die Linie steht immer an derselben Stelle), die Verteilung von Insertionsort dagegen schon.";
+      runningLabel.textContent = "";
+    }, 10);
+  });
+
+  // initial render
+  resetAll();
+  runSimulation(1); // warm up (JIT), no visual effect
+  const initial = runSimulation(500);
+  drawHistogram(initial.insertionCounts, initial.fixedCount);
+  document.getElementById("simSummary").innerHTML =
+    "500 zufällige Listen der Länge " + SIM_N + " simuliert. Ø Insertionsort: " +
+    Math.round(initial.insertionCounts.reduce((a, b) => a + b, 0) / initial.insertionCounts.length) +
+    " Vergleiche, Selection-/Bubblesort immer " + initial.fixedCount + ".";})();
+</script>
+
+</body>
+</html>
